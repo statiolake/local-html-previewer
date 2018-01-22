@@ -20,10 +20,13 @@ class MainClass : QObject {
         QUrl fileurl;
         QWebEngineView eng;
 
+        int timerId;
+
     public:
         MainClass(QString const &filename, QObject *parent = Q_NULLPTR) : QObject(parent) {
             QtWebEngine::initialize();
 
+            timerId = startTimer(500);
             auto fileInfo = QFileInfo(filename);
             if (!fileInfo.exists()) {
                 throw NoFileException();
@@ -35,10 +38,38 @@ class MainClass : QObject {
             connect(&eng, SIGNAL( titleChanged(const QString&) ), this, SLOT( engTitle(const QString &) ));
         }
 
+        ~MainClass() {
+            killTimer(timerId);
+        }
+
         void exec() {
             eng.setZoomFactor(1.5);
             eng.load(fileurl);
             eng.show();
+        }
+
+        void window_repaint() {
+            static int a = 1;
+            // qDebug() << "Repainting...";
+            // workaround: eng.children() returns const pointer, but resize() is not a const function. I know this is dirty hack but no other way.
+            //             by the way, children()[2] is QtWebEngineCore::RenderWidgetHostViewQtDelegateWidget.
+            // auto renderWidget = const_cast<QWidget *>(static_cast<QWidget const *>(eng.children()[2]));
+            // qDebug() << renderWidget->metaObject()->className();
+            // renderWidget->repaint();
+            // workaround: the parent QWebEngineView also must be repainted.
+            // eng.repaint();
+
+            // no other way found; very very dirty hack.
+            a = -a;
+            eng.resize(eng.width(), eng.height()+a);
+            // qDebug() << eng.title();
+        }
+
+    protected:
+        void timerEvent(QTimerEvent *e) {
+            if (e->timerId() == timerId) {
+                window_repaint();
+            }
         }
 
     public slots:
@@ -58,7 +89,6 @@ class MainClass : QObject {
                     watcher.addPath(abspath);
                 }
             }
-
             // workaround: Qt doesn't fire repaint() when switching workspace, so then the window will be filled with background color
             //             and never repainted until some event occurs (like resizing). Though we can resize the window programmatically
             //             using resize(width, height) function but resizing to the same size doesn't seem to fire repaint() and resizing
@@ -67,14 +97,7 @@ class MainClass : QObject {
             //             engReload() triggered. however it is much more easier than resizing the window manually every time it get freezed,
             //             or resizing window programmatically with the risk of causing another serious bug. when the window freezed, all you
             //             have to do is to modify the target file.
-
-            // workaround: eng.children() returns const pointer, but resize() is not a const function. I know this is dirty hack but no other way.
-            //             by the way, children()[2] is QtWebEngineCore::RenderWidgetHostViewQtDelegateWidget.
-            auto renderWidget = const_cast<QWidget *>(static_cast<QWidget const *>(eng.children()[2]));
-            renderWidget->repaint();
-            // workaround: the parent QWebEngineView also must be repainted.
-            eng.repaint();
-            qDebug() << eng.title();
+            window_repaint();
         }
 };
 
