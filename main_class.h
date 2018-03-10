@@ -78,7 +78,7 @@ class MainClass : QObject {
         }
 
         void engReload() {
-            qDebug() << "reload.";
+            // qDebug() << "reload.";
             eng.reload();
 
             // workaround: QFileSystemWatcher remove path even if the file is modified.
