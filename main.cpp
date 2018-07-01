@@ -1,5 +1,7 @@
-#include <QApplication>
+﻿#include <QApplication>
 #include "main_class.h"
+
+#define _tq(str) QString::fromLocal8Bit(str)
 
 static void showMsg(const QString msg) {
     QMessageBox msgbox;
@@ -12,16 +14,17 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
     if (argc != 2) {
-        showMsg("使い方: " + QString(argv[0]) + " [ファイルパス]");
+        showMsg(_tq("使い方: ") + QString(argv[0]) + _tq(" [ファイルパス]"));
         return 1;
     }
 
     MainClass *mc;
+    auto filename = _tq(argv[1]);
     try {
-        mc = new MainClass(argv[1]);
+        mc = new MainClass(filename);
         mc->exec();
     } catch (NoFileException e) {
-        showMsg(QString(argv[1]) + ": 指定されたファイルは存在しません。");
+        showMsg(filename + _tq(": 指定されたファイルは存在しません。"));
         return 1;
     }
 
